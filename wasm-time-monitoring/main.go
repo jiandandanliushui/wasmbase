@@ -120,51 +120,54 @@ func (ctx *httpHeaders) OnHttpRequestHeaders(int, bool) types.Action {
 	proxywasm.LogCriticalf("Current time %v, last refill time %v, the remain token %v",
 		current, ctx.pluginContext.lastRefillNanoSec, ctx.pluginContext.remainToken)
 
-	// //log there is too much rate right now
-	// proxywasm.LogCritical("There is too much rate now\n")
+	//log there is too much rate right now
+	proxywasm.LogCritical("There is too much rate now\n")
 
-	// hs, err := proxywasm.GetHttpRequestHeaders()
-	// if err != nil {
-	// 	proxywasm.LogCriticalf("failed to get request headers: %v", err)
-	// 	return types.ActionContinue
-	// }
-	// for _, h := range hs {
-	// 	proxywasm.LogCriticalf("request header: %s: %s", h[0], h[1])
-	// }
-	// cluster := "details.default.svc.cluster.local"
-	// proxywasm.LogCriticalf("这次一定成功！")
-	// requestheaders := [][2]string{
-	// 	{":authority", "details.default:9080"},
-	// 	{":path", "/details/0"},
-	// 	{":method", "GET"},
-	// 	{":scheme", "http"},
-	// 	{":accept", "*/*"},
-	// }
+	hs, err := proxywasm.GetHttpRequestHeaders()
+	if err != nil {
+		proxywasm.LogCriticalf("failed to get request headers: %v", err)
+		return types.ActionContinue
+	}
+	for _, h := range hs {
+		proxywasm.LogCriticalf("request header: %s: %s", h[0], h[1])
+	}
+	cluster := "outbound|9080||details.default.svc.cluster.local"
+	requestheaders := [][2]string{
+		{":authority", "details.default:9080"},
+		{":path", "/details/0"},
+		{":method", "GET"},
+		{":scheme", "http"},
+		{":accept", "*/*"},
+	}
 
-	// if _, err := proxywasm.DispatchHttpCall(cluster, requestheaders, nil, nil,
-	// 	50000, ctx.callBack); err != nil {
-	// 	proxywasm.LogCriticalf("dipatch httpcall failed: %v", err)
-	// 	return types.ActionContinue
-	// }
+	callBack := func(numHeaders, bodySize, numTrailers int) {
+		proxywasm.LogCriticalf("Received response: numHeaders=%d, bodySize=%d, numTrailers%d\n", numHeaders, bodySize, numTrailers)
+	}
+
+	if _, err := proxywasm.DispatchHttpCall(cluster, requestheaders, nil, nil,
+		50000, callBack); err != nil {
+		proxywasm.LogCriticalf("dipatch httpcall failed: %v", err)
+		return types.ActionContinue
+	}
 
 	return types.ActionContinue
 }
 
 // Override types.DefaultPluginContext.
-func (ctx *pluginContext) OnTick() {
-	proxywasm.LogCriticalf("开始执行回调函数3")
-	headers := [][2]string{
-		{":method", "POST"}, {":authority", "details:9080"}, {"accept", "*/*"}, {":path", "/details/0"},
-	}
-	// // Pick random value to select the request path.
-	// buf := make([]byte, 1)
-	// _, _ = rand.Read(buf)
-	// if buf[0]%2 == 0 {
-	// 	headers = append(headers, [2]string{":path", "/ok"})
-	// } else {
-	// 	headers = append(headers, [2]string{":path", "/fail"})
-	// }
-	if _, err := proxywasm.DispatchHttpCall("outbound|9080||details.default.svc.cluster.local", headers, nil, nil, 5000, ctx.callBack); err != nil {
-		proxywasm.LogCriticalf("dispatch httpcall failed: %v", err)
-	}
-}
+// func (ctx *pluginContext) OnTick() {
+// 	proxywasm.LogCriticalf("开始执行回调函数3")
+// 	headers := [][2]string{
+// 		{":method", "POST"}, {":authority", "details:9080"}, {"accept", "*/*"}, {":path", "/details/0"},
+// 	}
+// 	// // Pick random value to select the request path.
+// 	// buf := make([]byte, 1)
+// 	// _, _ = rand.Read(buf)
+// 	// if buf[0]%2 == 0 {
+// 	// 	headers = append(headers, [2]string{":path", "/ok"})
+// 	// } else {
+// 	// 	headers = append(headers, [2]string{":path", "/fail"})
+// 	// }
+// 	if _, err := proxywasm.DispatchHttpCall("outbound|9080||details.default.svc.cluster.local", headers, nil, nil, 5000, ctx.callBack); err != nil {
+// 		proxywasm.LogCriticalf("dispatch httpcall failed: %v", err)
+// 	}
+// }
